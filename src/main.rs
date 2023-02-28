@@ -7,10 +7,11 @@ use embedded_graphics::{
     Drawable,
 };
 use esp_idf_hal::{
+    delay::FreeRtos,
     peripherals::Peripherals,
     gpio::PinDriver,
 };
-use log::info;
+use log::{info, debug};
 use tinybmp::Bmp;
 
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
@@ -53,6 +54,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     info!("initialized, waiting for button presses...");
 
     loop {
+        if left_button.is_low() || right_button.is_low() {
+            debug!("button pressed, waiting (50ms) for the whole sequence to finish");
+            FreeRtos::delay_ms(50);
+            debug!("delay finished, checking data");
+        }
+
         match (left_button.is_low(), right_button.is_low()) {
             (true, true) => {
                 if !(anya_shown || vlad_shown) {
@@ -66,6 +73,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 anya_shown = false;
                 vlad_shown = false;
+
+                info!("starting 250ms delay to allow the user to release the buttons");
+                FreeRtos::delay_ms(250);
+                info!("delay finished");
             }
             (true, false) => {
                 if anya_shown {

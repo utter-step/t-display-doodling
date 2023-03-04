@@ -16,6 +16,7 @@ use tinybmp::Bmp;
 
 use esp_idf_sys as _; // If using the `binstart` feature of `esp-idf-sys`, always keep this module imported
 
+mod backlight;
 mod display;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -28,6 +29,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let peripherals = Peripherals::take().expect("Failed to take peripherals");
     let mut display = display::create!(peripherals);
+    let mut backlight = backlight::create!(peripherals);
 
     let anya_bytes = include_bytes!("../anya.bmp");
     let anya_bmp =
@@ -63,6 +65,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         match (left_button.is_low(), right_button.is_low()) {
             (true, true) => {
                 if !(anya_shown || vlad_shown) {
+                    // nothing to clear
                     continue;
                 }
 
@@ -80,6 +83,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
             (true, false) => {
                 if anya_shown {
+                    // don't draw the same image twice
                     continue;
                 }
 
@@ -90,9 +94,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 anya_shown = true;
                 vlad_shown = false;
+
+                backlight.set(100)?;
             }
             (false, true) => {
                 if vlad_shown {
+                    // don't draw the same image twice
                     continue;
                 }
 
@@ -103,6 +110,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 anya_shown = false;
                 vlad_shown = true;
+
+                backlight.set(50)?;
             }
             _ => {}
         }

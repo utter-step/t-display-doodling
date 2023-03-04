@@ -11,7 +11,6 @@ use esp_idf_hal::{
         Gpio23,
         Gpio16,
         Gpio5,
-        Gpio4,
         InputOutput,
     },
     spi::{
@@ -44,12 +43,7 @@ pub(crate) fn create_st7789_pico(
     rst: Gpio23,
     dc: Gpio16,
     cs: Gpio5,
-    bl: Gpio4,
 ) -> Result<Display<'static>, Box<dyn Error>> {
-    // turn on backlight
-    let mut bl = PinDriver::input_output_od(bl)?;
-    bl.set_high()?;
-
     let spi_driver = SpiDriver::new(
         spi,
         sclk,
@@ -72,9 +66,12 @@ pub(crate) fn create_st7789_pico(
 
     let di = SPIInterfaceNoCS::new(spi, dc);
 
-    let display = Builder::st7789_pico1(di)
+    let mut display = Builder::st7789_pico1(di)
         .init(&mut delay, Some(rst))
         .map_err(|e| format!("Failed to initialize display: {e:?}"))?;
+
+    display.set_tearing_effect(mipidsi::TearingEffect::HorizontalAndVertical)
+        .map_err(|e| format!("Failed to set tearing effect: {e:?}"))?;
 
     Ok(display)
 }
@@ -89,9 +86,8 @@ macro_rules! create {
         let dc = $peripherals.pins.gpio16;
 
         let cs = $peripherals.pins.gpio5;
-        let bl = $peripherals.pins.gpio4;
 
-        crate::display::create_st7789_pico(spi, sclk, sdo, rst, dc, cs, bl)?
+        crate::display::create_st7789_pico(spi, sclk, sdo, rst, dc, cs)?
     }};
 }
 
